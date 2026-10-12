@@ -25,6 +25,7 @@ export const TOOL_VERSIONS = Object.freeze({
   pnpm: '12.11.2',
   pi: '1.1.0',
   mise: '2026.10.8',
+  agentBrowser: '0.39.0',
 });
 export const MISE_SHA256 =
   'c72477ae6c3a8e7d817a322f43da70e4643e75ee5c21265f1c19c894273b7428';
@@ -150,7 +151,9 @@ async function stageSources() {
       packageJson.packageManager !== `pnpm@${TOOL_VERSIONS.pnpm}` ||
       packageJson.devDependencies?.['@earendil-works/pi-coding-agent'] !==
         TOOL_VERSIONS.pi ||
-      packageJson.devDependencies?.e2b !== '2.55.0'
+      packageJson.devDependencies?.e2b !== '2.55.0' ||
+      packageJson.devDependencies?.['agent-browser'] !==
+        TOOL_VERSIONS.agentBrowser
     ) {
       throw new Error(
         'Template dependency pins differ from the reviewed versions.',

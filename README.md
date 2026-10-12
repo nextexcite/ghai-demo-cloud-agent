@@ -34,8 +34,8 @@ The gateway exposes OpenAI-compatible endpoint families where configured. That
 **does not mean every offering uses the Responses API**, or that arbitrary
 Chat/Responses/media protocol translation is available.
 
-Connection details and model selections are private runtime configuration. Set
-them as repository secrets before running a recipe; no public defaults are
+Connection details and coding-model selections are private runtime configuration. Recipe 02 permits the public decision-model default `jev-latest`, overridable at runtime. Set
+them as repository secrets before running a recipe; no public endpoint or coding-model defaults are
 provided. Query discovery through that configured endpoint when selecting an
 operation. Match advertised endpoint support, modalities, and input requirements
 to the client. Discovery metadata is not proof of account eligibility,
@@ -104,7 +104,7 @@ Add these GitHub Actions repository secrets yourself:
 | Name                     | Purpose                                          |
 | ------------------------ | ------------------------------------------------ |
 | `GHAI_API_KEY`           | Run-only credential used only in inference steps |
-| `GHAI_PI_BASE_URL`       | Private HTTPS endpoint ending in `/v1`           |
+| `GHAI_BASE_URL`          | Private HTTPS endpoint ending in `/v1`           |
 | `GHAI_PI_PRIMARY_MODEL`  | Private primary model selection                  |
 | `GHAI_PI_FALLBACK_MODEL` | Private, distinct fallback model selection       |
 

@@ -248,6 +248,16 @@ export async function publishJob(
   const patch = await readFile(join(dir, 'changes.patch'));
   assert.equal(hash(patch), state.patchSha256);
   assert.equal(hash(patch), result.patchSha256);
+  assert.equal(
+    result.agent?.patchSha256,
+    result.patchSha256,
+    'QA candidate mismatch',
+  );
+  assert.equal(
+    result.agent?.rounds?.at(-1)?.action,
+    'ready_for_review',
+    'QA decision missing',
+  );
   assert.deepEqual(
     result.verification,
     ['lint', 'typecheck', 'test', 'build'].map((check) => ({

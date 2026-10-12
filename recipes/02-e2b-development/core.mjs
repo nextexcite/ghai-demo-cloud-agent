@@ -17,6 +17,7 @@ export const remoteRoot = '/home/user/ghai-job';
 export const bin = '/opt/ghai-delegation/bin';
 export const hash = (value) => createHash('sha256').update(value).digest('hex');
 export const quote = (value) => `'${String(value).replaceAll("'", "'\\''")}'`;
+export const runtimeHelpers = ['decision.mjs', 'browser-qa.mjs'];
 export const checks = ['lint', 'typecheck', 'test', 'build'];
 const envPattern = /^[A-Z_][A-Z0-9_]{0,127}$/;
 const repoPattern = /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/;
@@ -80,7 +81,7 @@ export function validateEnvironment(names) {
 export function validateBaseUrl(value) {
   assert(
     typeof value === 'string' && value.length > 0,
-    'GHAI_PI_BASE_URL must be configured',
+    'GHAI_BASE_URL must be configured',
   );
   const url = new URL(value);
   assert(
@@ -177,7 +178,7 @@ export async function planJob(options) {
   const manifest = JSON.parse(manifestText);
   assert.equal(manifest.schemaVersion, 1);
   assert.equal(manifest.recipe, '02-e2b-development');
-  assert.equal(manifest.provider.baseUrlEnv, 'GHAI_PI_BASE_URL');
+  assert.equal(manifest.provider.baseUrlEnv, 'GHAI_BASE_URL');
   assert.equal(manifest.provider.modelEnv, 'GHAI_PI_PRIMARY_MODEL');
   assert.deepEqual(manifest.capabilities.mcp, ['context7']);
   assert.deepEqual(Object.keys(manifest.environment).sort(), [
@@ -222,6 +223,14 @@ export async function planJob(options) {
     options.model,
     options.baseUrl,
   );
+  assert(
+    /^[A-Za-z0-9_.:/-]{1,200}$/.test(options.decisionModel || 'jev-latest'),
+    'Invalid decision model',
+  );
+  assert(
+    new URL(options.baseUrl).pathname.replace(/\/$/, '') === '/v1',
+    'GHAI_BASE_URL must end in /v1',
+  );
   const dir = resolve(options.jobDir);
   await mkdir(dirname(dir), { recursive: true });
   await mkdir(dir, { mode: 0o700 }); // No overwrite/reuse of a prior job.
@@ -242,12 +251,25 @@ export async function planJob(options) {
       Object.entries(files).map(([name, text]) => [name, hash(text)]),
     ),
     runnerSha256: hash(await readSmall(join(recipeDir, 'remote-runner.mjs'))),
+    helperHashes: Object.fromEntries(
+      await Promise.all(
+        runtimeHelpers.map(async (name) => [
+          name,
+          hash(await readSmall(join(recipeDir, name))),
+        ]),
+      ),
+    ),
+    decision: {
+      model: options.decisionModel || 'jev-latest',
+      maxCalls: 2,
+      maxRepairs: 1,
+    },
     provider: {
       baseUrl: validateBaseUrl(options.baseUrl),
       api: 'openai-responses',
     },
     configurationNames: options.configurationNames ?? {
-      baseUrl: 'GHAI_PI_BASE_URL',
+      baseUrl: 'GHAI_BASE_URL',
       model: 'GHAI_PI_PRIMARY_MODEL',
     },
     model,
@@ -304,9 +326,19 @@ export async function loadJob(dir, { verifyInputs = true } = {}) {
     job.runnerSha256,
     'Runner changed after preparation; create a new plan',
   );
+  const helpers = {};
+  for (const name of runtimeHelpers) {
+    helpers[name] = await readSmall(join(recipeDir, name));
+    assert.equal(
+      hash(helpers[name]),
+      job.helperHashes?.[name],
+      'QA helper changed; create a new plan',
+    );
+  }
   return {
     job,
     state,
+    helpers,
     inputContents,
     runner,
     manifest: JSON.parse(inputContents['environment.manifest.json']),
@@ -421,7 +453,8 @@ export async function runJob(
   { live = false, buildFile, env = process.env, adapter, verifyPublic } = {},
 ) {
   assert(live, 'Live sandbox/inference requires --live');
-  const { job, state, manifest, inputContents, runner } = await loadJob(dir);
+  const { job, state, manifest, inputContents, runner, helpers } =
+    await loadJob(dir);
   assert.equal(
     state.status,
     'prepared',
@@ -436,6 +469,11 @@ export async function runJob(
     build.status,
     'ready',
     'Template descriptor must record a completed build',
+  );
+  assert.equal(
+    build.toolchain?.agentBrowser,
+    manifest.toolchain.agentBrowser,
+    'Template browser pin mismatch',
   );
   assert.equal(
     build.toolchain?.pi,
@@ -539,6 +577,8 @@ export async function runJob(
       },
       { path: `${remoteRoot}/job.json`, data: JSON.stringify(job) },
     ];
+    for (const [name, data] of Object.entries(helpers))
+      uploads.push({ path: `${remoteRoot}/${name}`, data });
     for (const name of ['product.md', 'technical.md'])
       uploads.push({
         path: `${remoteRoot}/inputs/${name}`,
@@ -588,6 +628,12 @@ export async function runJob(
       Buffer.byteLength(patch) <= manifest.policy.maxPatchBytes &&
         patch.length > 0,
       'Empty or oversized patch',
+    );
+    assert.equal(hash(patch), execution.patchSha256, 'Patch changed after QA');
+    assert.equal(
+      execution.rounds?.at(-1)?.action,
+      'ready_for_review',
+      'QA decision missing',
     );
     for (const secret of Object.values(secrets))
       assert(

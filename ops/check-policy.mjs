@@ -38,7 +38,7 @@ for (const step of steps.filter((step) =>
   ['prepare', 'primary', 'fallback'].includes(step.id),
 )) {
   for (const name of [
-    'GHAI_PI_BASE_URL',
+    'GHAI_BASE_URL',
     'GHAI_PI_PRIMARY_MODEL',
     'GHAI_PI_FALLBACK_MODEL',
   ])

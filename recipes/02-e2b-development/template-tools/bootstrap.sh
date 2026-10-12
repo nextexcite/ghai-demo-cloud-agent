@@ -72,6 +72,14 @@ cat > "$root/bin/pi" <<'PI'
 exec /opt/ghai-delegation/bin/node /opt/ghai-delegation/packages/node_modules/@earendil-works/pi-coding-agent/dist/bundle/cli.js "$@"
 PI
 chmod 755 "$root/bin/pi"
+# Explicit template build only: install the browser from the pinned package.
+ln -s "$root/packages/node_modules/.bin/agent-browser" "$root/bin/agent-browser"
+HOME="$root/browser-home" agent-browser install --with-deps
+chrome=$(find "$root/browser-home/.agent-browser/browsers" -type f -name chrome -print -quit)
+test -n "$chrome"
+ln -s "$chrome" "$root/bin/chrome"
+"$root/bin/chrome" --version >/dev/null
+
 node --input-type=module -e '
 import { readFileSync, writeFileSync } from "node:fs";
 import { execFileSync } from "node:child_process";
@@ -81,6 +89,8 @@ writeFileSync("/opt/ghai-delegation/toolchain.json", JSON.stringify({
   node: process.versions.node,
   pnpm: execFileSync("pnpm", ["--version"], { encoding: "utf8" }).trim(),
   pi: pi.version,
+  agentBrowser: JSON.parse(readFileSync("node_modules/agent-browser/package.json", "utf8")).version,
+  chrome: execFileSync("/opt/ghai-delegation/bin/chrome", ["--version"], { encoding: "utf8" }).trim(),
   mise: execFileSync("mise", ["--version"], { encoding: "utf8" }).trim(),
   git: execFileSync("git", ["--version"], { encoding: "utf8" }).trim(),
   platform: process.platform,

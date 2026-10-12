@@ -6,7 +6,7 @@ import { primary } from '../ops/ci/policy.mjs';
 export const baseUrl = 'https://gateway.example.invalid/v1';
 export const endpoint = baseUrl + '/responses';
 export const configuration = {
-  GHAI_PI_BASE_URL: baseUrl,
+  GHAI_BASE_URL: baseUrl,
   GHAI_PI_PRIMARY_MODEL: 'fixture-primary',
   GHAI_PI_FALLBACK_MODEL: 'fixture-fallback',
 };

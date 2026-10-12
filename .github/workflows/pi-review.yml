@@ -42,7 +42,7 @@ jobs:
         env:
           GHAI_PI_PRIMARY_MODEL: ${{ secrets.GHAI_PI_PRIMARY_MODEL }}
           GHAI_PI_FALLBACK_MODEL: ${{ secrets.GHAI_PI_FALLBACK_MODEL }}
-          GHAI_PI_BASE_URL: ${{ secrets.GHAI_PI_BASE_URL }}
+          GHAI_BASE_URL: ${{ secrets.GHAI_BASE_URL }}
           GITHUB_TOKEN: ${{ github.token }}
           GHAI_PR: ${{ inputs.pr_number }}
           GHAI_ALLOW_INFERENCE: ${{ inputs.allow_inference }}
@@ -55,7 +55,7 @@ jobs:
         env:
           GHAI_PI_PRIMARY_MODEL: ${{ secrets.GHAI_PI_PRIMARY_MODEL }}
           GHAI_PI_FALLBACK_MODEL: ${{ secrets.GHAI_PI_FALLBACK_MODEL }}
-          GHAI_PI_BASE_URL: ${{ secrets.GHAI_PI_BASE_URL }}
+          GHAI_BASE_URL: ${{ secrets.GHAI_BASE_URL }}
           HOME: ${{ steps.prepare.outputs.root }}/home
           PI_CODING_AGENT_DIR: ${{ steps.prepare.outputs.root }}/agent
           PI_OFFLINE: '1'
@@ -94,7 +94,7 @@ jobs:
         env:
           GHAI_PI_PRIMARY_MODEL: ${{ secrets.GHAI_PI_PRIMARY_MODEL }}
           GHAI_PI_FALLBACK_MODEL: ${{ secrets.GHAI_PI_FALLBACK_MODEL }}
-          GHAI_PI_BASE_URL: ${{ secrets.GHAI_PI_BASE_URL }}
+          GHAI_BASE_URL: ${{ secrets.GHAI_BASE_URL }}
           HOME: ${{ steps.prepare.outputs.root }}/home
           PI_CODING_AGENT_DIR: ${{ steps.prepare.outputs.root }}/agent
           PI_OFFLINE: '1'

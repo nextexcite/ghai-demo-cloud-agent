@@ -34,8 +34,9 @@ sandbox environment variable. `.env` is ignored. Never paste keys in chat or arg
 | ----------------------- | -------------------------------------------------- |
 | `E2B_API_KEY`           | Local E2B build, creation, and cleanup             |
 | `GHAI_API_KEY`          | Remote coding Pi's model access                    |
-| `GHAI_PI_BASE_URL`      | Privately configured model endpoint                |
+| `GHAI_BASE_URL`         | Privately configured model endpoint                |
 | `GHAI_PI_PRIMARY_MODEL` | Exact model ID in your existing GHAI preset        |
+| `GHAI_DECISION_MODEL`   | Optional; defaults to `jev-latest`                 |
 | `CONTEXT7_API_KEY`      | Remote coding Pi's documentation MCP access        |
 | `GH_TOKEN`              | Local GitHub publisher, only needed at publication |
 
@@ -84,7 +85,7 @@ pnpm recipe2 build --live
 ```
 
 The builder reads `E2B_API_KEY` from your local environment, installs the pinned
-mise 2026.10.8 / Node 24.21.0 / pnpm 12.11.2 / Pi 1.1.0 toolchain, and records the
+mise 2026.10.8 / Node 24.21.0 / pnpm 12.11.2 / Pi 1.1.0 / agent-browser 0.39.0 toolchain and Chrome, and records the
 actual immutable template/build IDs in `artifacts/e2b-template-build.json`. The local E2B SDK is pinned to 2.55.0.
 No credentials are baked into the template, and remote Pi starts only after
 sandbox creation. The checked-in manifest is intentionally **unbuilt**; no live
@@ -103,9 +104,34 @@ pnpm recipe2 run --live
 pnpm recipe2 status
 ```
 
-The local controller creates the sandbox, starts remote Pi, checks the generated
-app with `lint`, `typecheck`, `test`, and `build`, collects a bounded patch, and
-kills the sandbox. Only coding-model and Context7 credentials enter the remote
+The controller runs this small fixed workflow:
+
+1. Pi implements the frozen specifications.
+2. Run `lint`, `typecheck`, `test`, and `build`; then trusted agent-browser smoke
+   opens the app, adds a todo, checks it survives reload, and captures a temporary screenshot.
+3. Our own SystemOne helper asks for `ready_for_review`, `repair`, or `ask_human`.
+   It reuses `GHAI_BASE_URL` ending in `/v1`, appending `/systemone` once, and
+   `GHAI_API_KEY`. No `pi-jev` dependency or extension is used.
+4. The same decision call also selects a criterion to investigate (quick add,
+   persistence, due dates, reminders or assignees), so a repair has a concrete focus.
+   At most one Pi repair, followed by the same checks and a final decision.
+   The entire job shares 40 observed Pi turns and 15 minutes; up to two decision
+   POSTs have no retries. These are operational bounds, not a billing cap.
+5. Only passing checks plus `ready_for_review` can export a patch. The controller
+   reruns the four app checks, verifies the exported patch matches the QA-tested
+   candidate hash, and kills the sandbox. Publication still requires its own command.
+
+This first version uses direct Pi subprocesses and a controller-owned sequence,
+not pi-subagents discovery or a new general workflow engine. A decision error or
+unknown outcome stops the job. An unresolved final decision cannot publish.
+Browser checks get a fresh session and credential-free environment. Raw page,
+model and command output are not retained; bounded page title/accessibility observations and a product-spec excerpt are sent to the decision model as untrusted evidence, then discarded; only check statuses and the chosen action/focus are kept in the private job result. Temporary
+screenshots are removed after the smoke check; they are not a visual judge input.
+
+The independent browser smoke covers quick-add and persistence only. Due dates,
+reminders, assignees, accessibility and broader UX still rely on the generated
+app's tests and human draft-PR review. This is a working orchestration shape,
+not proof of complete specification conformance or an independently calibrated judge. Only coding-model and Context7 credentials enter the remote
 command; E2B and GitHub credentials stay local. Runtime credentials are readable
 by the remote agent and its child processes, so use scoped, revocable credentials.
 

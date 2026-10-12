@@ -21,7 +21,7 @@ test('connection/model configuration is required and canonical, with no defaults
     'https://gateway.example.invalid/v2',
   ])
     assert.throws(() =>
-      validateModels({ ...configuration, GHAI_PI_BASE_URL: value }),
+      validateModels({ ...configuration, GHAI_BASE_URL: value }),
     );
   assert.throws(() =>
     validateModels({
@@ -31,7 +31,7 @@ test('connection/model configuration is required and canonical, with no defaults
   );
   assert.equal(
     validateModels(configuration).endpoint,
-    configuration.GHAI_PI_BASE_URL + '/responses',
+    configuration.GHAI_BASE_URL + '/responses',
   );
 });
 
@@ -47,7 +47,7 @@ test('artifacts and model-visible review exclude configured endpoint/model ident
   const f = fixture();
   try {
     const text = reviewText(
-      `References ${configuration.GHAI_PI_PRIMARY_MODEL}, ${configuration.GHAI_PI_FALLBACK_MODEL}, ${configuration.GHAI_PI_BASE_URL} and gateway.example.invalid are irrelevant to this diff.`,
+      `References ${configuration.GHAI_PI_PRIMARY_MODEL}, ${configuration.GHAI_PI_FALLBACK_MODEL}, ${configuration.GHAI_BASE_URL} and gateway.example.invalid are irrelevant to this diff.`,
     );
     const runner = createRunner(f.env(), async () => sse(events(text)));
     const result = await runner.run();
@@ -79,7 +79,7 @@ test('public output redacts case variants of configured endpoint and model ident
   const f = fixture();
   try {
     const text = reviewText(
-      `${configuration.GHAI_PI_BASE_URL.toUpperCase()} ${configuration.GHAI_PI_PRIMARY_MODEL.toUpperCase()} ${configuration.GHAI_PI_FALLBACK_MODEL.toUpperCase()} GATEWAY.EXAMPLE.INVALID`,
+      `${configuration.GHAI_BASE_URL.toUpperCase()} ${configuration.GHAI_PI_PRIMARY_MODEL.toUpperCase()} ${configuration.GHAI_PI_FALLBACK_MODEL.toUpperCase()} GATEWAY.EXAMPLE.INVALID`,
     );
     const result = await createRunner(f.env(), async () =>
       sse(events(text)),
@@ -176,7 +176,7 @@ test('frozen configuration changes fail before dispatch', () => {
     assert.throws(() =>
       createRunner({
         ...f.env(),
-        GHAI_PI_BASE_URL: 'https://different.example.invalid/v1',
+        GHAI_BASE_URL: 'https://different.example.invalid/v1',
       }),
     );
   } finally {

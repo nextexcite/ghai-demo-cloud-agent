@@ -37,7 +37,7 @@ export function isSha(value) {
 export function validateModels(env) {
   const primaryModel = env.GHAI_PI_PRIMARY_MODEL;
   const fallbackModel = env.GHAI_PI_FALLBACK_MODEL;
-  const configuredBase = env.GHAI_PI_BASE_URL;
+  const configuredBase = env.GHAI_BASE_URL;
   assert(
     typeof primaryModel === 'string' &&
       /^[A-Za-z0-9][A-Za-z0-9._:/-]{0,255}$/.test(primaryModel),

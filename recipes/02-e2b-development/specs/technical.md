@@ -61,6 +61,13 @@ permission, background scheduler, email, or push delivery; hidden/closed tabs
 cannot guarantee timely delivery. Storage failures also prevent reliable
 deduplication across reloads, which the warning/README must explain.
 
+## Browser smoke contract
+
+Use a document title containing `Todo`, a quick-add input with accessible label
+exactly `Title`, and an add button with accessible name exactly `Add`. The trusted
+browser smoke uses these controls to create a task and check persistence after reload.
+These stable accessible labels also make keyboard/screen-reader use clearer.
+
 ## Verification and documentation
 
 - Unit tests: validation, mutations, bounds, dates, assignee normalization and

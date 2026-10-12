@@ -97,3 +97,14 @@ This does not qualify the E2B image build or live runtime.
 API calls and options were checked against the installed `e2b@2.55.0` types and
 real offline SDK serialization, rather than assuming the latest web examples
 match the package pin.
+
+## Browser QA tooling
+
+The template also installs the root-lockfile-pinned agent-browser 0.39.0 package
+and, only during the explicit build, downloads Chrome for Testing with its
+installer. That installer selects current stable Chrome: the browser binary is
+not independently version-pinned. Its actual version is recorded in the sandbox
+`/opt/ghai-delegation/toolchain.json`. A fixed executable symlink lets each smoke
+run use a fresh browser HOME without downloading again. No browser is installed
+on the teammate's workstation by this recipe. The template remains unbuilt and
+browser behavior is offline-fixture-tested only.

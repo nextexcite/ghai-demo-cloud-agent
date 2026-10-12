@@ -12,7 +12,8 @@
     "pi": "1.1.0",
     "mise": "2026.10.8",
     "e2b": "2.55.0",
-    "git": "inherited from base; recorded by template build checks"
+    "git": "inherited from base; recorded by template build checks",
+    "agentBrowser": "0.39.0"
   },
   "template": {
     "base": "pi",
@@ -26,12 +27,13 @@
     "name": "ghai",
     "api": "openai-responses",
     "presetSource": "selected nonsecret model definition from existing local models.json",
-    "baseUrlEnv": "GHAI_PI_BASE_URL",
+    "baseUrlEnv": "GHAI_BASE_URL",
     "modelEnv": "GHAI_PI_PRIMARY_MODEL"
   },
   "capabilities": {
     "tools": ["read", "bash", "edit", "write", "grep", "find", "ls"],
-    "mcp": ["context7"]
+    "mcp": ["context7"],
+    "qa": ["controller-owned-browser-smoke", "systemone-triage"]
   },
   "environment": {
     "e2b": {
@@ -71,6 +73,15 @@
     "publication": "separate explicit draft-pr command",
     "deploy": false,
     "merge": false,
-    "providerHostFrom": "GHAI_PI_BASE_URL"
+    "providerHostFrom": "GHAI_BASE_URL"
+  },
+  "decision": {
+    "protocol": "systemone",
+    "baseUrlEnv": "GHAI_BASE_URL",
+    "apiKeyEnv": "GHAI_API_KEY",
+    "modelEnv": "GHAI_DECISION_MODEL",
+    "defaultModel": "jev-latest",
+    "maxCalls": 2,
+    "maxRepairs": 1
   }
 }

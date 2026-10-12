@@ -212,7 +212,7 @@ test('UTF-8 request bound, cancellation, missing credential and wrong presets fa
     for (const env of [
       { ...f.env(), GHAI_API_KEY: '' },
       { ...f.env(), GHAI_REVIEW_MODEL: 'wrong' },
-      { ...f.env(), GHAI_PI_BASE_URL: 'https://example.com' },
+      { ...f.env(), GHAI_BASE_URL: 'https://example.com' },
     ])
       assert.throws(() => createRunner(env));
     writeFileSync(

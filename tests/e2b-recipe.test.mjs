@@ -91,6 +91,7 @@ async function fixture(t, overrides = {}) {
       status: 'ready',
       toolchain: {
         pi: '1.1.0',
+        agentBrowser: '0.39.0',
         node: '24.21.0',
         pnpm: '12.11.2',
         mise: '2026.10.8',
@@ -123,6 +124,8 @@ function fakeAdapter(options = {}) {
           stdout = JSON.stringify({
             status: options.agentFailure ? 'failed' : 'completed',
             observedTurns: 2,
+            patchSha256: options.qaHash ?? hash(options.patch ?? patch),
+            rounds: [{ action: 'ready_for_review', checks: [] }],
             actualBillingUsd: null,
           });
         return { exitCode: 0, stdout, stderr: '' };
@@ -894,8 +897,9 @@ test('dotenv setup contains names only and is never included in template uploads
   assert.deepEqual(entries, [
     'E2B_API_KEY=',
     'GHAI_API_KEY=',
-    'GHAI_PI_BASE_URL=',
+    'GHAI_BASE_URL=',
     'GHAI_PI_PRIMARY_MODEL=',
+    'GHAI_DECISION_MODEL=jev-latest',
     'CONTEXT7_API_KEY=',
     'GH_TOKEN=',
   ]);
@@ -926,7 +930,7 @@ test('no-flags CLI plan resolves origin and HEAD, freezes default key names, and
     PI_CODING_AGENT_DIR: root,
     GIT_CONFIG_GLOBAL: '/dev/null',
     GIT_CONFIG_NOSYSTEM: '1',
-    GHAI_PI_BASE_URL: config.providers.ghai.baseUrl,
+    GHAI_BASE_URL: config.providers.ghai.baseUrl,
     GHAI_PI_PRIMARY_MODEL: model.id,
     E2B_API_KEY: 'local-controller-secret-canary',
     GHAI_API_KEY: 'model-secret-canary',
@@ -1000,5 +1004,24 @@ test('no-flags CLI plan resolves origin and HEAD, freezes default key names, and
       );
       return true;
     },
+  );
+});
+
+test('QA candidate mismatch blocks output even when scripts pass', async (t) => {
+  const f = await fixture(t);
+  const adapter = fakeAdapter({ qaHash: '0'.repeat(64) });
+  const state = await runJob(f.dir, {
+    live: true,
+    buildFile: f.buildFile,
+    env,
+    adapter,
+    verifyPublic: async () => {},
+  });
+  assert.equal(state.status, 'failed');
+});
+
+test('decision-incompatible base paths fail during offline planning', async (t) => {
+  await assert.rejects(
+    fixture(t, { baseUrl: 'https://fixture.invalid/prefix/v1' }),
   );
 });

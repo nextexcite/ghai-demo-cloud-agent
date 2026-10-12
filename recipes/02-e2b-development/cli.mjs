@@ -202,10 +202,11 @@ export async function main(args = process.argv.slice(2)) {
       baseBranch: o.base,
       modelsFile: defaults.modelsFile,
       model: process.env[o['model-env'] ?? 'GHAI_PI_PRIMARY_MODEL'],
-      baseUrl: process.env[o['base-url-env'] ?? 'GHAI_PI_BASE_URL'],
+      decisionModel: process.env.GHAI_DECISION_MODEL,
+      baseUrl: process.env[o['base-url-env'] ?? 'GHAI_BASE_URL'],
       configurationNames: {
         model: o['model-env'] ?? 'GHAI_PI_PRIMARY_MODEL',
-        baseUrl: o['base-url-env'] ?? 'GHAI_PI_BASE_URL',
+        baseUrl: o['base-url-env'] ?? 'GHAI_BASE_URL',
       },
       product: o.product,
       technical: o.technical,
