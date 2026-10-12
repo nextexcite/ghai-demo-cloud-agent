@@ -1,0 +1,29 @@
+{
+  "name": "ghai-demo-cloud-agent",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Flexible GHAI capability and agent-runtime orchestration recipes",
+  "packageManager": "pnpm@12.11.2",
+  "engines": {
+    "node": ">=24 <25"
+  },
+  "scripts": {
+    "check": "pnpm lint && pnpm typecheck && pnpm test",
+    "lint": "prettier --check . && node ops/check-policy.mjs",
+    "format": "prettier --write .",
+    "typecheck": "tsc --noEmit",
+    "test": "node --import ./tests/offline-network.mjs --test tests/*.test.mjs",
+    "recipe2": "node recipes/02-e2b-development/cli.mjs"
+  },
+  "devDependencies": {
+    "@earendil-works/pi-ai": "1.1.0",
+    "@earendil-works/pi-coding-agent": "1.1.0",
+    "@types/node": "24.19.2",
+    "e2b": "2.55.0",
+    "prettier": "3.9.10",
+    "typescript": "7.0.2",
+    "yaml": "2.9.1",
+    "pi-action-runtime": "npm:@earendil-works/pi-coding-agent@1.0.4"
+  }
+}

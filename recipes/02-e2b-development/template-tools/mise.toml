@@ -1,0 +1,8 @@
+# Sandbox-only configuration. It never activates or changes the workstation.
+[tools]
+"core:node" = "24.21.0"
+"npm:pnpm" = { version = "12.11.2", allow_builds = false }
+
+[settings]
+lockfile = true
+lockfile_platforms = ["linux-x64"]

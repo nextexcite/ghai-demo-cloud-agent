@@ -1,0 +1,138 @@
+name: Bounded Pi review
+on:
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: Open PR number, or verify for the synthetic fixture (both use inference)
+        required: true
+        default: verify
+        type: string
+      allow_inference:
+        description: Allow 1 primary + at most 1 eligible fallback request; 2048 output tokens each; billing unknown
+        required: true
+        default: false
+        type: boolean
+permissions:
+  contents: read
+  pull-requests: read
+concurrency:
+  group: pi-review-${{ github.repository }}
+  cancel-in-progress: false
+jobs:
+  review:
+    if: github.ref == 'refs/heads/main' && github.run_attempt == 1 && inputs.allow_inference
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      GIT_CONFIG_COUNT: '1'
+      GIT_CONFIG_KEY_0: init.defaultBranch
+      GIT_CONFIG_VALUE_0: main
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca # v5.1.1
+        with:
+          cache: false
+      - run: mise run setup
+      - run: mise exec -- pnpm check
+      - name: Prepare immutable diff and isolated configuration
+        id: prepare
+        env:
+          GHAI_PI_PRIMARY_MODEL: ${{ secrets.GHAI_PI_PRIMARY_MODEL }}
+          GHAI_PI_FALLBACK_MODEL: ${{ secrets.GHAI_PI_FALLBACK_MODEL }}
+          GHAI_PI_BASE_URL: ${{ secrets.GHAI_PI_BASE_URL }}
+          GITHUB_TOKEN: ${{ github.token }}
+          GHAI_PR: ${{ inputs.pr_number }}
+          GHAI_ALLOW_INFERENCE: ${{ inputs.allow_inference }}
+        run: mise exec -- node ops/ci/review.mjs prepare
+      - name: Primary review (one request)
+        id: primary
+        timeout-minutes: 3
+        continue-on-error: true
+        uses: shaftoe/pi-coding-agent-action@f7496a9aea9798c5d52d39096d98d5c5b16559b3 # v2.30.0
+        env:
+          GHAI_PI_PRIMARY_MODEL: ${{ secrets.GHAI_PI_PRIMARY_MODEL }}
+          GHAI_PI_FALLBACK_MODEL: ${{ secrets.GHAI_PI_FALLBACK_MODEL }}
+          GHAI_PI_BASE_URL: ${{ secrets.GHAI_PI_BASE_URL }}
+          HOME: ${{ steps.prepare.outputs.root }}/home
+          PI_CODING_AGENT_DIR: ${{ steps.prepare.outputs.root }}/agent
+          PI_OFFLINE: '1'
+          PI_TELEMETRY: '0'
+          GHAI_API_KEY: ${{ secrets.GHAI_API_KEY }}
+          GHAI_REVIEW_ROOT: ${{ steps.prepare.outputs.root }}
+          GHAI_REVIEW_MODEL: primary
+        with:
+          github_token: ${{ github.token }}
+          provider: ghai
+          model: primary
+          prompt: Review the prepared bounded patch using the trusted extension.
+          load_builtin_extensions: false
+          loaded_tools: ghai_review_disabled
+          extensions: ${{ github.workspace }}/ops/ci/pi-review-extension.ts
+          enable_codemode: false
+          enable_tool_search: false
+          auto_compaction: false
+          cache_warming: 'off'
+          refresh_model_catalog: false
+          export_session_html: false
+          export_session_jsonl: false
+          share_session: false
+      - name: Classify primary without replay
+        id: primary_state
+        if: always() && steps.prepare.outcome == 'success'
+        env:
+          REVIEW_ROOT: ${{ steps.prepare.outputs.root }}
+        run: mise exec -- node ops/ci/review.mjs decide "$REVIEW_ROOT" primary
+      - name: Fallback review (one separately accounted request)
+        id: fallback
+        if: steps.primary_state.outputs.next == 'fallback'
+        timeout-minutes: 3
+        continue-on-error: true
+        uses: shaftoe/pi-coding-agent-action@f7496a9aea9798c5d52d39096d98d5c5b16559b3 # v2.30.0
+        env:
+          GHAI_PI_PRIMARY_MODEL: ${{ secrets.GHAI_PI_PRIMARY_MODEL }}
+          GHAI_PI_FALLBACK_MODEL: ${{ secrets.GHAI_PI_FALLBACK_MODEL }}
+          GHAI_PI_BASE_URL: ${{ secrets.GHAI_PI_BASE_URL }}
+          HOME: ${{ steps.prepare.outputs.root }}/home
+          PI_CODING_AGENT_DIR: ${{ steps.prepare.outputs.root }}/agent
+          PI_OFFLINE: '1'
+          PI_TELEMETRY: '0'
+          GHAI_API_KEY: ${{ secrets.GHAI_API_KEY }}
+          GHAI_REVIEW_ROOT: ${{ steps.prepare.outputs.root }}
+          GHAI_REVIEW_MODEL: fallback
+        with:
+          github_token: ${{ github.token }}
+          provider: ghai
+          model: fallback
+          prompt: Review the prepared bounded patch using the trusted extension.
+          load_builtin_extensions: false
+          loaded_tools: ghai_review_disabled
+          extensions: ${{ github.workspace }}/ops/ci/pi-review-extension.ts
+          enable_codemode: false
+          enable_tool_search: false
+          auto_compaction: false
+          cache_warming: 'off'
+          refresh_model_catalog: false
+          export_session_html: false
+          export_session_jsonl: false
+          share_session: false
+      - name: Verify terminal stream and write sanitized report
+        if: always() && steps.prepare.outcome == 'success'
+        env:
+          REVIEW_ROOT: ${{ steps.prepare.outputs.root }}
+        run: mise exec -- node ops/ci/review.mjs finish "$REVIEW_ROOT"
+      - name: Retain accounting and review only
+        if: always() && steps.prepare.outcome == 'success'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: pi-review-${{ github.run_id }}
+          retention-days: 7
+          if-no-files-found: error
+          path: |
+            ${{ steps.prepare.outputs.root }}/plan.json
+            ${{ steps.prepare.outputs.root }}/provenance.json
+            ${{ steps.prepare.outputs.root }}/attempts.jsonl
+            ${{ steps.prepare.outputs.root }}/report.json
+            ${{ steps.prepare.outputs.root }}/review.md

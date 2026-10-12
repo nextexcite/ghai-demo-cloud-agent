@@ -1,0 +1,4 @@
+pnpm-lock.yaml
+fixtures/*.diff
+node_modules/
+recipes/02-e2b-development/template-tools/.mise/

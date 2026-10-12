@@ -1,0 +1,10 @@
+diff --git a/example/divide.mjs b/example/divide.mjs
+index 1111111..2222222 100644
+--- a/example/divide.mjs
++++ b/example/divide.mjs
+@@ -1,4 +1,4 @@
+ export function divide(a, b) {
+-  if (b === 0) throw new Error('division by zero');
++  if (a === 0) throw new Error('division by zero');
+   return a / b;
+ }

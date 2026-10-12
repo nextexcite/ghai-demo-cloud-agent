@@ -1,0 +1,79 @@
+{
+  "schemaVersion": 1,
+  "recipe": "02-e2b-development",
+  "platforms": {
+    "controller": ["linux-x64", "linux-arm64", "darwin-x64", "darwin-arm64"],
+    "sandbox": "linux-x64",
+    "tested": ["linux-x64 offline fixtures only"]
+  },
+  "toolchain": {
+    "node": "24.21.0",
+    "pnpm": "12.11.2",
+    "pi": "1.1.0",
+    "mise": "2026.10.8",
+    "e2b": "2.55.0",
+    "git": "inherited from base; recorded by template build checks"
+  },
+  "template": {
+    "base": "pi",
+    "baseBuildId": null,
+    "baseIsMutable": true,
+    "templateId": null,
+    "buildId": null,
+    "status": "unbuilt"
+  },
+  "provider": {
+    "name": "ghai",
+    "api": "openai-responses",
+    "presetSource": "selected nonsecret model definition from existing local models.json",
+    "baseUrlEnv": "GHAI_PI_BASE_URL",
+    "modelEnv": "GHAI_PI_PRIMARY_MODEL"
+  },
+  "capabilities": {
+    "tools": ["read", "bash", "edit", "write", "grep", "find", "ls"],
+    "mcp": ["context7"],
+    "optionalMcp": ["exa"]
+  },
+  "environment": {
+    "e2b": {
+      "scope": "controller",
+      "required": true
+    },
+    "ghai": {
+      "scope": "remote-runtime",
+      "required": true,
+      "defaultName": "GHAI_API_KEY"
+    },
+    "context7": {
+      "scope": "remote-runtime",
+      "required": true
+    },
+    "exa": {
+      "scope": "remote-runtime",
+      "required": false
+    },
+    "github": {
+      "scope": "publisher",
+      "required": true
+    }
+  },
+  "policy": {
+    "allowedPaths": ["examples/todo-agent/"],
+    "maxWallTimeMs": 900000,
+    "maxObservedTurns": 40,
+    "maxPatchBytes": 2000000,
+    "maxArtifactBytes": 4000000,
+    "allowedHosts": [
+      "github.com",
+      "api.github.com",
+      "codeload.github.com",
+      "registry.npmjs.org",
+      "mcp.context7.com"
+    ],
+    "optionalExaHost": "mcp.exa.ai",
+    "publication": "separate explicit draft-pr command",
+    "deploy": false,
+    "merge": false,
+    "providerHostFrom": "GHAI_PI_BASE_URL"
+  }
+}
