@@ -48,13 +48,13 @@ fresh agent directory contains no fallback provider or credential catalog.
 [Recipe 02](../recipes/02-e2b-development/README.md) uses a trusted skill and a
 small deterministic CLI. An existing local Pi session on Linux or macOS supervises
 the work; no custom extension or global Pi configuration change is required.
-The remote Pi 1.1.0 process uses native MCP support for required Context7
-and optional Exa.
+The remote Pi 1.1.0 process uses native MCP support for Context7 only.
 
 The handoff freezes a product specification, a technical specification, the
 selected existing GHAI model definition, exact repository/base SHA, environment
-manifest, allowed result scope, and execution limit. The included todo-agent specs
-are the first implementation brief. The application has not been prebuilt.
+manifest, allowed result scope, and execution limit. The included todo-app specs
+describe a classic local TanStack todo app with browser persistence, due/reminder
+times and configurable assignees. The application has not been prebuilt.
 
 The local controller owns the lifecycle:
 

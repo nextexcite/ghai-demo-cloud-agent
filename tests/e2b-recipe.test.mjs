@@ -26,7 +26,11 @@ import {
   createEventMonitor,
   piArguments,
 } from '../recipes/02-e2b-development/remote-runner.mjs';
-import { parseArgs } from '../recipes/02-e2b-development/cli.mjs';
+import {
+  parseArgs,
+  planDefaults,
+  repositoryFromOrigin,
+} from '../recipes/02-e2b-development/cli.mjs';
 const model = {
   id: 'fixture-primary-model',
   name: 'GHAI preset',
@@ -55,7 +59,7 @@ const env = {
   TEAM_GITHUB: 'github-publisher-canary',
 };
 const patch =
-  'diff --git a/examples/todo-agent/README.md b/examples/todo-agent/README.md\nnew file mode 100644\nindex 0000000..ce01362\n--- /dev/null\n+++ b/examples/todo-agent/README.md\n@@ -0,0 +1 @@\n+hello\n';
+  'diff --git a/examples/todo-app/README.md b/examples/todo-app/README.md\nnew file mode 100644\nindex 0000000..ce01362\n--- /dev/null\n+++ b/examples/todo-app/README.md\n@@ -0,0 +1 @@\n+hello\n';
 async function fixture(t, overrides = {}) {
   const root = await mkdtemp(join(tmpdir(), 'e2b-offline-'));
   t.after(() => rm(root, { recursive: true, force: true }));
@@ -154,7 +158,7 @@ test('plan freezes complete specs and selected preset without modifying local co
   assert.deepEqual(loaded.job.model.compat, model.compat);
   assert.equal(JSON.stringify(loaded).includes('DO-NOT-COPY'), false);
   assert.equal(loaded.state.status, 'prepared');
-  assert.deepEqual(loaded.job.allowedPaths, ['examples/todo-agent/']);
+  assert.deepEqual(loaded.job.allowedPaths, ['examples/todo-app/']);
 });
 test('plan refuses job directory reuse', async (t) => {
   const f = await fixture(t);
@@ -336,18 +340,24 @@ test('failed cleanup remains visibly unconfirmed', async (t) => {
   });
   assert.equal(state.cleanup, 'unconfirmed');
 });
-test('native MCP is scoped; optional Exa search/fetch only', async (t) => {
+test('native MCP exposes only Context7 documentation tools', async (t) => {
   const f = await fixture(t);
   const config = piConfig(f.job);
   assert.deepEqual(Object.keys(config['mcp.json'].mcpServers), ['context7']);
-  f.job.environment.exa = 'TEAM_EXA';
+  const args = piArguments(f.job);
   assert.equal(
-    piConfig(f.job)['mcp.json'].mcpServers.exa.url,
-    'https://mcp.exa.ai/mcp?tools=web_search_exa,web_fetch_exa',
+    args[args.indexOf('--tools') + 1],
+    'read,bash,edit,write,grep,find,ls,mcp__context7__*',
   );
-  assert(piArguments(f.job).includes('--no-extensions'));
-  assert(piArguments(f.job).includes('builtin:mcp'));
-  assert(piArguments(f.job).includes('--no-context-files'));
+  assert(args.includes('--no-extensions'));
+  assert(args.includes('builtin:mcp'));
+  assert(args.includes('--no-context-files'));
+  await assert.rejects(
+    fixture(t, {
+      environment: { ...f.options.environment, extra: 'EXTRA_KEY' },
+    }),
+    /Only the four/,
+  );
 });
 test('event monitor requires settled stop and uses LF framing', () => {
   const monitor = createEventMonitor(2);
@@ -423,15 +433,15 @@ test('SDK adapter freezes destinations, disables retries, requests egress and TT
   assert.equal(e2bOptions('key').apiUrl, 'https://api.e2b.app');
 });
 test('publisher rejects paths, credentials and private key material', () => {
-  validateOutputPath('examples/todo-agent/src/App.tsx');
+  validateOutputPath('examples/todo-app/src/App.tsx');
   for (const path of [
     '.github/workflows/evil.yml',
-    'examples/todo-agent/../../evil',
-    'examples/todo-agent/.env',
-    'examples/todo-agent/.git/config',
-    '/examples/todo-agent/app',
-    'examples/todo-agent/node_modules/pkg/a',
-    'examples/todo-agent/my file',
+    'examples/todo-app/../../evil',
+    'examples/todo-app/.env',
+    'examples/todo-app/.git/config',
+    '/examples/todo-app/app',
+    'examples/todo-app/node_modules/pkg/a',
+    'examples/todo-app/my file',
   ])
     assert.throws(() => validateOutputPath(path));
   assert.throws(() => scanSecrets(Buffer.from('canary'), ['canary']));
@@ -641,7 +651,7 @@ test('actual git patch inspection applies scoped files without executing project
   );
   assert.deepEqual(files, [
     {
-      path: 'examples/todo-agent/README.md',
+      path: 'examples/todo-app/README.md',
       mode: '100644',
       type: 'blob',
       content: Buffer.from('hello\n').toString('base64'),
@@ -844,4 +854,151 @@ test('manifest budget fields require bounded integers', async (t) => {
     await writeJson(path, copy);
     await assert.rejects(fixture(t, { manifest: path }));
   }
+});
+
+test('simple plan defaults use existing Pi configuration and validated GitHub origin', async () => {
+  const defaults = await planDefaults(
+    { repo: 'owner/repo', 'base-sha': 'a'.repeat(40) },
+    { HOME: '/fixture-home' },
+  );
+  assert.equal(defaults.modelsFile, '/fixture-home/.pi/agent/models.json');
+  const custom = await planDefaults(
+    { repo: 'owner/repo', 'base-sha': 'a'.repeat(40) },
+    { PI_MODELS_FILE: '/fixture/presets.json' },
+  );
+  assert.equal(custom.modelsFile, '/fixture/presets.json');
+  for (const origin of [
+    'https://github.com/owner/repo.git',
+    'git@github.com:owner/repo.git',
+    'https://github.com/owner/repo',
+  ])
+    assert.equal(repositoryFromOrigin(origin), 'owner/repo');
+  for (const origin of [
+    'https://token@github.com/owner/repo.git',
+    'https://other.invalid/owner/repo',
+    '/local/repo',
+  ])
+    assert.throws(() => repositoryFromOrigin(origin), /Origin must/);
+  for (const command of ['plan', 'status', 'build'])
+    assert.equal(parseArgs([command]).command, command);
+});
+
+test('dotenv setup contains names only and is never included in template uploads', async () => {
+  const { TEMPLATE_FILES } =
+    await import('../recipes/02-e2b-development/template.mjs');
+  const root = new URL('../', import.meta.url);
+  const sample = await readFile(new URL('env.example', root), 'utf8');
+  const entries = sample
+    .split('\n')
+    .filter((line) => line && !line.startsWith('#'));
+  assert.deepEqual(entries, [
+    'E2B_API_KEY=',
+    'GHAI_API_KEY=',
+    'GHAI_PI_BASE_URL=',
+    'GHAI_PI_PRIMARY_MODEL=',
+    'CONTEXT7_API_KEY=',
+    'GH_TOKEN=',
+  ]);
+  assert.equal(
+    (await readFile(new URL('.envrc', root), 'utf8')).trim(),
+    'dotenv_if_exists .env',
+  );
+  assert(
+    (await readFile(new URL('.gitignore', root), 'utf8'))
+      .split('\n')
+      .includes('.env'),
+  );
+  assert(
+    TEMPLATE_FILES.every(([source]) => !/env(?:rc|\.example)?$/.test(source)),
+  );
+});
+
+test('no-flags CLI plan resolves origin and HEAD, freezes default key names, and never copies dotenv', async (t) => {
+  const { execFile } = await import('node:child_process');
+  const { promisify } = await import('node:util');
+  const { fileURLToPath } = await import('node:url');
+  const root = await mkdtemp(join(tmpdir(), 'e2b-cli-defaults-'));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const exec = promisify(execFile);
+  const environment = {
+    PATH: process.env.PATH,
+    HOME: root,
+    PI_CODING_AGENT_DIR: root,
+    GIT_CONFIG_GLOBAL: '/dev/null',
+    GIT_CONFIG_NOSYSTEM: '1',
+    GHAI_PI_BASE_URL: config.providers.ghai.baseUrl,
+    GHAI_PI_PRIMARY_MODEL: model.id,
+    E2B_API_KEY: 'local-controller-secret-canary',
+    GHAI_API_KEY: 'model-secret-canary',
+    CONTEXT7_API_KEY: 'context-secret-canary',
+    GH_TOKEN: 'publisher-secret-canary',
+  };
+  const git = async (...args) =>
+    (await exec('git', args, { cwd: root, env: environment })).stdout.trim();
+  await git('init', '--quiet');
+  await git('remote', 'add', 'origin', 'https://github.com/owner/repo.git');
+  await writeFile(join(root, 'README.md'), 'fixture');
+  await git('add', 'README.md');
+  await git(
+    '-c',
+    'user.name=Fixture',
+    '-c',
+    'user.email=fixture@example.invalid',
+    '-c',
+    'core.hooksPath=/dev/null',
+    'commit',
+    '--quiet',
+    '-m',
+    'fixture',
+  );
+  const head = await git('rev-parse', 'HEAD');
+  await writeFile(join(root, 'models.json'), JSON.stringify(config));
+  await writeFile(join(root, '.env'), 'PRIVATE_FILE=dotenv-secret-canary\n');
+  const cli = fileURLToPath(
+    new URL('../recipes/02-e2b-development/cli.mjs', import.meta.url),
+  );
+  const guard = fileURLToPath(
+    new URL('./offline-network.mjs', import.meta.url),
+  );
+  const result = await exec(
+    process.execPath,
+    ['--import', guard, cli, 'plan'],
+    { cwd: root, env: environment },
+  );
+  const summary = JSON.parse(result.stdout);
+  assert.equal(summary.repository, 'owner/repo');
+  assert.equal(summary.baseSha, head);
+  assert.deepEqual(summary.environmentNames, {
+    e2b: 'E2B_API_KEY',
+    ghai: 'GHAI_API_KEY',
+    context7: 'CONTEXT7_API_KEY',
+    github: 'GH_TOKEN',
+  });
+  const loaded = await loadJob(join(root, 'artifacts/todo-job'));
+  const stored = JSON.stringify(loaded);
+  for (const secret of [
+    environment.E2B_API_KEY,
+    environment.GHAI_API_KEY,
+    environment.CONTEXT7_API_KEY,
+    environment.GH_TOKEN,
+    'dotenv-secret-canary',
+  ]) {
+    assert(!stored.includes(secret));
+    assert(!result.stdout.includes(secret));
+  }
+  const missingKeyEnv = { ...environment };
+  delete missingKeyEnv.E2B_API_KEY;
+  await assert.rejects(
+    exec(process.execPath, ['--import', guard, cli, 'build', '--live'], {
+      cwd: root,
+      env: missingKeyEnv,
+    }),
+    (error) => {
+      assert.match(
+        error.stderr,
+        /Missing environment variable: E2B_API_KEY.*direnv allow/,
+      );
+      return true;
+    },
+  );
 });

@@ -227,10 +227,8 @@ test('template build fails before credential lookup unless explicitly opted in',
       ]),
     /--name/,
   );
-  assert.throws(
-    () => parseBuildArguments(['--live', '--name', 'ghai-test']),
-    /--api-key-env/,
-  );
+  assert.equal(parseBuildArguments(['--live']).apiKeyEnv, 'E2B_API_KEY');
+  assert.equal(parseBuildArguments(['--live']).name, 'ghai-pi-dev');
   assert.throws(
     () =>
       parseBuildArguments([
@@ -350,4 +348,15 @@ test('mocked unknown build preserves its reservation and does not disclose raw e
   } finally {
     await rm(directory, { recursive: true, force: true });
   }
+});
+
+test('default template key is E2B_API_KEY with actionable missing-key help before any build', async () => {
+  let calls = 0;
+  await assert.rejects(
+    buildTemplate(['--live'], {}, async () => {
+      calls++;
+    }),
+    /Missing environment variable: E2B_API_KEY.*direnv allow/,
+  );
+  assert.equal(calls, 0);
 });

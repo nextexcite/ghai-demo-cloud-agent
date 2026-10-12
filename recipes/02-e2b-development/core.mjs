@@ -66,8 +66,11 @@ export function validateEnvironment(names) {
       envPattern.test(names[key]),
       `Choose ${key} environment variable name`,
     );
-  if (names.exa !== undefined)
-    assert(envPattern.test(names.exa), 'Invalid Exa environment variable name');
+  assert.deepEqual(
+    Object.keys(names).sort(),
+    ['context7', 'e2b', 'ghai', 'github'],
+    'Only the four declared credential roles are supported',
+  );
   assert.equal(
     new Set(Object.values(names)).size,
     Object.values(names).length,
@@ -176,6 +179,13 @@ export async function planJob(options) {
   assert.equal(manifest.recipe, '02-e2b-development');
   assert.equal(manifest.provider.baseUrlEnv, 'GHAI_PI_BASE_URL');
   assert.equal(manifest.provider.modelEnv, 'GHAI_PI_PRIMARY_MODEL');
+  assert.deepEqual(manifest.capabilities.mcp, ['context7']);
+  assert.deepEqual(Object.keys(manifest.environment).sort(), [
+    'context7',
+    'e2b',
+    'ghai',
+    'github',
+  ]);
   assert(Number.isSafeInteger(manifest.policy.maxWallTimeMs));
   assert(Number.isSafeInteger(manifest.policy.maxObservedTurns));
   assert(
@@ -183,7 +193,7 @@ export async function planJob(options) {
       manifest.policy.maxPatchBytes > 0 &&
       manifest.policy.maxPatchBytes <= 2000000,
   );
-  assert.deepEqual(manifest.policy.allowedPaths, ['examples/todo-agent/']);
+  assert.deepEqual(manifest.policy.allowedPaths, ['examples/todo-app/']);
   assert(
     manifest.policy.maxWallTimeMs >= 60000 &&
       manifest.policy.maxWallTimeMs <= 1800000,
@@ -305,11 +315,10 @@ export async function loadJob(dir, { verifyInputs = true } = {}) {
 export function resolveSecrets(job, env, roles) {
   const result = {};
   for (const role of roles) {
-    if (role === 'exa' && !job.environment.exa) continue;
     const name = job.environment[role];
     assert(
       typeof env[name] === 'string' && env[name].length > 0,
-      `Missing environment variable: ${name}`,
+      `Missing environment variable: ${name}. Set it in the local process environment or ignored .env, then run direnv allow; never put credential values in arguments.`,
     );
     result[role] = env[name];
   }
@@ -328,12 +337,6 @@ export function piConfig(job) {
       exposure: 'direct',
     },
   };
-  if (job.environment.exa)
-    mcpServers.exa = {
-      url: 'https://mcp.exa.ai/mcp?tools=web_search_exa,web_fetch_exa',
-      headers: { 'x-api-key': '${EXA_RUNTIME_KEY}' },
-      exposure: 'direct',
-    };
   return {
     'models.json': {
       providers: {
@@ -384,7 +387,6 @@ export class E2BAdapter {
         allowOut: [
           ...manifest.policy.allowedHosts,
           new URL(job.provider.baseUrl).hostname,
-          ...(job.environment.exa ? [manifest.policy.optionalExaHost] : []),
         ],
       },
     });
@@ -473,7 +475,7 @@ export async function runJob(
     /^[A-Za-z0-9_-]+$/.test(build.buildId ?? ''),
     'Immutable template build ID required',
   );
-  const secrets = resolveSecrets(job, env, ['e2b', 'ghai', 'context7', 'exa']);
+  const secrets = resolveSecrets(job, env, ['e2b', 'ghai', 'context7']);
   const client = adapter ?? new E2BAdapter(secrets.e2b);
   await reserveAction(dir, 'run', job.jobId);
   // Reserve before a potentially ambiguous control-plane request. No automatic replay.
@@ -551,7 +553,6 @@ export async function runJob(
     const runtimeEnv = {
       GHAI_API_KEY: secrets.ghai,
       CONTEXT7_RUNTIME_KEY: secrets.context7,
-      ...(secrets.exa ? { EXA_RUNTIME_KEY: secrets.exa } : {}),
     };
     const execution = JSON.parse(
       await command(sandbox, `${bin}/node ${remoteRoot}/remote-runner.mjs`, {
@@ -570,7 +571,7 @@ export async function runJob(
     for (const check of checks) {
       await command(
         sandbox,
-        `cd ${remoteRoot}/repo/examples/todo-agent && ${bin}/pnpm run ${check}`,
+        `cd ${remoteRoot}/repo/examples/todo-app && ${bin}/pnpm run ${check}`,
         { timeoutMs: 120000, envs: { CI: '1' } },
       );
       verification.push({ check, status: 'passed' });

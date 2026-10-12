@@ -25,7 +25,7 @@ const safeGitEnv = {
   GIT_CONFIG_KEY_1: 'credential.helper',
   GIT_CONFIG_VALUE_1: '',
 };
-export function validateOutputPath(path, allowed = ['examples/todo-agent/']) {
+export function validateOutputPath(path, allowed = ['examples/todo-app/']) {
   assert(
     typeof path === 'string' &&
       path.length < 500 &&
@@ -206,7 +206,7 @@ export class GitHubPublisher {
       tree,
     });
     const commit = await this.api(`${prefix}/git/commits`, 'POST', {
-      message: `Implement todo agent (job ${job.jobId})`,
+      message: `Implement local todo app (job ${job.jobId})`,
       tree: createdTree.sha,
       parents: [job.baseSha],
     });
@@ -217,7 +217,7 @@ export class GitHubPublisher {
     });
     await record({ branchCreated: true });
     const pr = await this.api(`${prefix}/pulls`, 'POST', {
-      title: 'Implement conversational todo agent',
+      title: 'Implement local TanStack todo app',
       head: job.branch,
       base: job.baseBranch,
       draft: true,

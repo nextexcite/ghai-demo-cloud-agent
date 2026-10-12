@@ -34,12 +34,12 @@ establish a successful live E2B build, model run, or publication.
 - [GitHub draft pull-request creation and required permissions](https://docs.github.com/en/rest/pulls/pulls#create-a-pull-request)
 - [mise configuration and tool definitions](https://mise.jdx.dev/configuration.html)
 - [Context7 MCP clients, including native Pi support](https://context7.com/docs/resources/all-clients)
-- [Exa hosted MCP](https://exa.ai/docs/get-started/exa-mcp)
-- [Cloudflare chat-agent packages and entry points](https://developers.cloudflare.com/agents/communication-channels/chat/chat-agents/)
-- [Cloudflare Agents state lifecycle](https://developers.cloudflare.com/agents/runtime/lifecycle/state/)
-- [Cloudflare Agents testing](https://developers.cloudflare.com/agents/getting-started/testing/)
 
-The Cloudflare references inform the todo implementation brief. Compatible exact
+- [TanStack Router React overview](https://tanstack.com/router/latest/docs/framework/react/overview)
+- [Vite local development guide](https://vite.dev/guide/)
+- [direnv dotenv loading](https://direnv.net/man/direnv-stdlib.1.html)
+
+The TanStack references inform the local todo implementation brief. Compatible exact
 application package versions and successful application checks are deliverables
 for the future implementation job, not claims made by this recipe.
 

@@ -57,6 +57,9 @@ can grow from a single bounded model call to deliberate multi-step orchestration
 No live model call is performed by installation, local checks, a push, or a pull
 request. There are no automatic push/PR workflows or automatic image builds.
 Recipe 02 template builds and sandbox execution require explicit live commands.
+Recipe 02 uses [env.example](env.example) → ignored `.env` → direnv, then your
+existing Pi with the [delegation skill](recipes/02-e2b-development/skills/e2b-development/SKILL.md).
+See its [short setup](recipes/02-e2b-development/README.md#setup-env--direnv-then-your-existing-pi).
 The only GitHub workflow is manually dispatched and defaults to inference disabled.
 
 ## Recipe 01: bounded Pi review

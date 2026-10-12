@@ -31,13 +31,13 @@
   },
   "capabilities": {
     "tools": ["read", "bash", "edit", "write", "grep", "find", "ls"],
-    "mcp": ["context7"],
-    "optionalMcp": ["exa"]
+    "mcp": ["context7"]
   },
   "environment": {
     "e2b": {
       "scope": "controller",
-      "required": true
+      "required": true,
+      "defaultName": "E2B_API_KEY"
     },
     "ghai": {
       "scope": "remote-runtime",
@@ -46,19 +46,17 @@
     },
     "context7": {
       "scope": "remote-runtime",
-      "required": true
-    },
-    "exa": {
-      "scope": "remote-runtime",
-      "required": false
+      "required": true,
+      "defaultName": "CONTEXT7_API_KEY"
     },
     "github": {
       "scope": "publisher",
-      "required": true
+      "required": true,
+      "defaultName": "GH_TOKEN"
     }
   },
   "policy": {
-    "allowedPaths": ["examples/todo-agent/"],
+    "allowedPaths": ["examples/todo-app/"],
     "maxWallTimeMs": 900000,
     "maxObservedTurns": 40,
     "maxPatchBytes": 2000000,
@@ -70,7 +68,6 @@
       "registry.npmjs.org",
       "mcp.context7.com"
     ],
-    "optionalExaHost": "mcp.exa.ai",
     "publication": "separate explicit draft-pr command",
     "deploy": false,
     "merge": false,

@@ -1,3 +1,4 @@
+import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import {
   chmod,
@@ -94,8 +95,8 @@ export function parseBuildArguments(args) {
     allowPositionals: false,
     options: {
       live: { type: 'boolean', default: false },
-      name: { type: 'string' },
-      'api-key-env': { type: 'string' },
+      name: { type: 'string', default: 'ghai-pi-dev' },
+      'api-key-env': { type: 'string', default: 'E2B_API_KEY' },
       out: { type: 'string', default: 'artifacts/e2b-template-build.json' },
     },
   });
@@ -175,11 +176,10 @@ export async function buildTemplate(
 ) {
   const options = parseBuildArguments(args);
   const apiKey = environment[options.apiKeyEnv];
-  if (!apiKey?.trim()) {
-    throw new Error(
-      'The selected E2B credential environment variable is empty.',
-    );
-  }
+  assert(
+    apiKey?.trim(),
+    `Missing environment variable: ${options.apiKeyEnv}. Set it in ignored .env, then run direnv allow. Never pass the key value as an argument.`,
+  );
   const staged = await stageSources();
   try {
     await mkdir(dirname(options.outputPath), { recursive: true, mode: 0o700 });

@@ -1,41 +1,58 @@
-# Product spec: conversational todo agent
+# Product spec: local todo app
 
-Status: ready implementation brief; the app is intentionally not prebuilt here.
-This document and technical.md must be frozen before cloud delegation.
+Status: implementation brief only; the app is intentionally not prebuilt here.
+Freeze this document and technical.md before cloud delegation.
 
 ## Outcome
 
-Build `examples/todo-agent`, a local-development web app demonstrating the
-Cloudflare Agents SDK. A user manages a visible todo list through chat or simple
-controls. Implementation returns as a branch and draft PR; deployment is excluded.
+Build `examples/todo-app`, a small classic todo demo that runs locally with a
+TanStack React frontend. The cloud coding agent implements this brief later;
+the app itself needs no agent, model, cloud service, account, or API credentials.
 
-## Scope
+## Simple everyday flow
 
-- Add, list, rename, complete, reopen, and delete todos through conversation.
-- Provide direct add and complete/reopen controls and a chat composer.
-- Ask for clarification when a title matches multiple todos.
-- Show an explicit approve/deny step before deletion.
-- Persist chat and todos across refresh; synchronize two tabs in the same demo room.
-- Show empty, connecting, streaming, error, and retry states. Support keyboard use.
-- Use a shared local demo room, labeled as such. No authentication, public hosting,
-  scheduled reminders, dates, attachments, or external integrations in this version.
+- One page with a quick-add title field and Add button; Enter also adds the task.
+- Show optional Due and Reminder date/time inputs and an Assignee select beside
+  quick add, wrapping naturally on small screens. Title is the only required
+  user input; use the configured default assignee and leave dates empty.
+- List tasks with a completion checkbox, title, assignee, due/reminder details,
+  and small Edit/Delete controls. Edit these same fields inline, with Save and
+  Cancel; cancel leaves the task unchanged.
+- Support complete/reopen and All/Active/Completed filters with a remaining count.
+  Confirm deletion inline so a stray click cannot remove a task.
+- Treat expiry as the due date/time: mark unfinished past-due tasks Overdue,
+  never automatically delete them. Display dates in the browser's local timezone.
+- Show a dismissible in-app reminder when an unfinished task's reminder time is
+  reached. Catch up on missed reminders when the app is reopened. State plainly:
+  reminders appear in this app; closed/background tabs cannot reliably notify.
+- Save tasks on this browser/device across refresh. Provide a helpful empty state,
+  readable validation/storage errors, visible focus, and keyboard-friendly labels.
 
-## Acceptance criteria
+## Assignee parameters
 
-1. A scripted conversation adds two items, renames one, completes and reopens an
-   item, and deletes only after approval.
-2. Refresh preserves chat and todos. Two tabs show the same completed mutation.
-3. Replaying an operation ID or reconnecting cannot duplicate a mutation.
-4. Invalid input, unknown IDs, ambiguity, denied deletion, and model errors do not
-   corrupt state or falsely claim success.
-5. The page is responsive, accessible by keyboard, and renders untrusted text safely.
-6. Credential-free unit/integration/browser tests cover the above. Real model
-   requests require a separately enabled smoke test.
-7. README explains local development, fake-model mode, checks, secret variable
-   names, and the shared-demo/no-auth limitation.
+Allow an optional comma-separated `assignees` URL parameter and optional
+`defaultAssignee`, for example `/?assignees=Alex,Sam&defaultAssignee=Sam`.
+Use `Me` when no valid list is supplied; use the first allowed name when the
+requested default is missing or invalid. These are local display names, not
+accounts or a team system. Changes to configuration never silently reassign
+existing tasks. Document parameter validation and examples in the app README.
 
-## Delivery
+## Acceptance and delivery
 
-A small implementation under `examples/todo-agent/`, its own locked dependencies,
-passing lint/typecheck/tests/build, and concise documentation. No Cloudflare deploy,
-no automatic workflow edits, no merges. Report checks not run and blockers honestly.
+1. Add with only a title, then edit due date, reminder, and assignee; complete,
+   reopen, filter, cancel an edit/delete, and confirm a deletion.
+2. Refresh preserves data. Configured assignees/defaults work; malformed parameters
+   safely fall back. Invalid fields leave the current task unchanged.
+3. An unfinished past-due task is visibly overdue. A due reminder appears once per
+   scheduled time, including catch-up after reopening; completed/deleted tasks
+   do not trigger reminders. Test with a controlled clock, without waiting.
+4. The responsive page is usable with keyboard alone and renders input as text.
+   Storage problems show a warning rather than pretending data was saved.
+5. Deliver a locked package under `examples/todo-app/` with passing `lint`,
+   `typecheck`, `test`, and `build`; document local startup, parameters, storage,
+   reminder limits, and any unverified behavior.
+
+Keep this a single-user, local-browser demo. No chat, conversational UI,
+Cloudflare/Workers/Agents SDK, server/backend, authentication, team management,
+cross-device or collaborative sync, email/push notifications, deployment,
+automatic workflow changes, or merges are in scope.
